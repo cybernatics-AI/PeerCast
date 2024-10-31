@@ -80,3 +80,68 @@
         )
         (var-set next-video-id (+ video-id u1))
         (ok video-id)))
+
+;; Enhanced Video Map
+(define-map videos 
+    { video-id: uint }
+    {
+        creator: principal,
+        title: (string-utf8 256),
+        content-hash: (buff 32),
+        price: uint,
+        created-at: uint,
+        views: uint,
+        revenue: uint,
+        is-active: bool
+    }
+)
+
+;; Revenue Tracking
+(define-map creator-revenue principal uint)
+(define-map platform-revenue (string-ascii 10) uint)
+
+;; Purchase Function
+(define-public (purchase-video (video-id uint))
+    (let ((video (unwrap! (map-get? videos { video-id: video-id }) ERR-NOT-FOUND)))
+        (asserts! (get is-active video) ERR-NOT-FOUND)
+        (try! (stx-transfer? (get price video) tx-sender (get creator video)))
+        (map-set videos 
+            { video-id: video-id }
+            (merge video { 
+                revenue: (+ (get revenue video) (get price video)),
+                views: (+ (get views video) u1)
+            })
+        )
+        (ok true)))
+
+;; [Previous code remains the same]
+
+;; Governance
+(define-map governance-proposals
+    uint 
+    {
+        title: (string-utf8 256),
+        description: (string-utf8 1024),
+        proposer: principal,
+        votes-for: uint,
+        votes-against: uint,
+        end-height: uint,
+        executed: bool
+    }
+)
+
+;; Enhanced Video struct with description
+(define-map videos 
+    { video-id: uint }
+    {
+        creator: principal,
+        title: (string-utf8 256),
+        description: (string-utf8 1024),
+        content-hash: (buff 32),
+        price: uint,
+        created-at: uint,
+        views: uint,
+        revenue: uint,
+        is-active: bool
+    }
+)
